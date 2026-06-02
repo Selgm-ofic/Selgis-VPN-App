@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Selgis VPN</title>
+  <script src="https://telegram.org/js/telegram-web-app.js?62"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="logo">Selgis VPN</h1>
+      <span class="status-badge" id="statusBadge">Отключено</span>
+    </header>
+
+    <div class="power-section">
+      <button class="power-btn" id="powerBtn">
+        <svg class="power-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+          <line x1="12" y1="2" x2="12" y2="12"/>
+        </svg>
+      </button>
+      <div class="timer" id="timer">00:00:00</div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <span class="stat-label">Загружено</span>
+        <span class="stat-value" id="uploadStat">0 MB</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Скачано</span>
+        <span class="stat-value" id="downloadStat">0 MB</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Сессия</span>
+        <span class="stat-value" id="sessionStat">0</span>
+      </div>
+    </div>
+
+    <div class="server-section">
+      <label class="section-label">Сервер</label>
+      <div class="server-list" id="serverList">
+        <div class="server-item active" data-server="helsinki">
+          <span class="server-name">🇫🇮 Хельсинки</span>
+          <span class="server-ping">12 ms</span>
+        </div>
+        <div class="server-item" data-server="germany">
+          <span class="server-name">🇩🇪 Германия</span>
+          <span class="server-ping">34 ms</span>
+        </div>
+        <div class="server-item" data-server="netherlands">
+          <span class="server-name">🇳🇱 Нидерланды</span>
+          <span class="server-ping">28 ms</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <div class="setting">
+        <span>Запуск при старте</span>
+        <label class="toggle">
+          <input type="checkbox" id="autoStart">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="setting">
+        <span>Kill Switch</span>
+        <label class="toggle">
+          <input type="checkbox" id="killSwitch" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
