@@ -4,76 +4,400 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Selgis VPN</title>
-  <script src="https://telegram.org/js/telegram-web-app.js?62"></script>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <h1 class="logo">Selgis VPN</h1>
-      <span class="status-badge" id="statusBadge">Отключено</span>
+  <!-- Star background -->
+  <div class="stars" aria-hidden="true">
+    <div class="stars-layer"></div>
+    <div class="stars-layer slow"></div>
+  </div>
+
+  <div id="app">
+    <!-- Header -->
+    <header>
+      <div class="header-left">
+        <div class="header-logo">
+          <svg viewBox="0 0 32 32" fill="none">
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#c9a84c"/>
+                <stop offset="1" stop-color="#a8893a"/>
+              </linearGradient>
+            </defs>
+            <path d="M16 2L4 7v9c0 7.5 5 14.5 12 16 7-1.5 12-8.5 12-16V7L16 2z" fill="url(#g1)"/>
+            <path d="M14 17l-3-3-1.5 1.5L14 20l8-8L20.5 10.5 14 17z" fill="white"/>
+          </svg>
+        </div>
+        <span class="header-title">Selgis <span class="header-divider">|</span> VPN</span>
+      </div>
+      <div class="header-right">
+        <button class="icon-btn" id="notifBtn">
+          <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" fill="currentColor"/></svg>
+          <span class="badge">1</span>
+        </button>
+        <button class="icon-btn" id="menuBtn">
+          <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="currentColor"/></svg>
+        </button>
+      </div>
     </header>
 
-    <div class="power-section">
-      <button class="power-btn" id="powerBtn">
-        <svg class="power-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
-          <line x1="12" y1="2" x2="12" y2="12"/>
-        </svg>
+    <main>
+      <!-- Главная -->
+      <section class="page active" id="page-home">
+        <h1 class="page-title">Добро пожаловать, <span id="userName">USER</span>!</h1>
+        <div class="sub-row">
+          <span class="muted">Ваша подписка</span>
+          <span class="badge-pill">Базовый юзер</span>
+        </div>
+
+        <div class="glass-card traffic-card">
+          <div class="card-header">
+            <div class="card-label"><span class="dot dot-gold"></span><span>ТРАФИК</span></div>
+          </div>
+          <h2 class="card-title">Расход трафика</h2>
+          <div class="traffic-bar"><div class="traffic-fill" id="trafficFill"></div></div>
+          <div class="traffic-info-row">
+            <span class="traffic-info-left"><span id="trafficUsed">21.2</span> <span class="traffic-unit">GB</span> использовано</span>
+            <span class="traffic-info-right" id="trafficRemaining">∞ осталось</span>
+          </div>
+
+          <div class="device-status">
+            <div class="device-icon">
+              <svg viewBox="0 0 24 24"><path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7l-2 3v1h8v-1l-2-3h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z" fill="currentColor"/></svg>
+            </div>
+            <div class="device-info">
+              <p class="device-title">Устройства</p>
+              <p class="device-sub"><span id="deviceCount">0</span> из <span id="deviceLimit">5</span></p>
+            </div>
+            <div class="device-limit-bar">
+              <div class="device-limit-fill" id="deviceLimitFill"></div>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="sub-card glass-inner" data-go="subscription">
+              <div class="card-label"><span>ТАРИФ</span></div>
+              <p class="sub-value">Текущий тариф</p>
+              <p class="sub-meta">до <span id="tariffEnd">13.10.2026</span></p>
+            </div>
+            <div class="sub-card glass-inner">
+              <div class="card-label"><svg viewBox="0 0 24 24" width="12" height="12"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" fill="currentColor"/></svg><span>ОСТАЛОСЬ</span></div>
+              <p class="sub-value"><span id="daysLeft">132</span> <span class="sub-unit">дн.</span></p>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <span class="footer-left"><span class="pulse-dot"></span>Online</span>
+            <a href="#" class="footer-link" data-go="subscription">Управление подпиской →</a>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="click-card glass-card" data-go="balance">
+            <div class="card-label">
+              <svg viewBox="0 0 24 24" width="12" height="12"><path d="M21 7.28V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-2.28c.59-.35 1-.98 1-1.72V9c0-.74-.41-1.38-1-1.72z" fill="currentColor"/></svg>
+              <span>Баланс</span>
+            </div>
+            <p class="big-value"><span id="balanceAmount">1.00</span> <span class="currency">₽</span></p>
+          </div>
+          <div class="click-card glass-card" data-go="referral">
+            <div class="card-label">
+              <svg viewBox="0 0 24 24" width="12" height="12"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3z" fill="currentColor"/></svg>
+              <span>Рефералы</span>
+            </div>
+            <p class="big-value"><span id="refCount">0</span></p>
+            <p class="muted-small" id="refEarnings">+0.00 ₽</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Подписка -->
+      <section class="page" id="page-subscription">
+        <h1 class="page-title">Подписка</h1>
+        <p class="page-sub">Управление устройствами и тарифом</p>
+
+        <div class="glass-card">
+          <h3 class="card-section-title">Управление</h3>
+          <a href="#" class="row-item" data-action="add-devices">
+            <div class="row-content"><p class="row-title">Докупить устройства</p><p class="row-sub">Сейчас лимит: <span id="limitInfo">5</span> · +50 ₽/мес за каждое</p></div>
+            <svg class="chevron-right" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" fill="currentColor"/></svg>
+          </a>
+          <a href="#" class="row-item" data-action="servers">
+            <div class="row-content"><p class="row-title">Серверы</p><p class="row-sub">Финляндия, Нидерланды, Германия</p></div>
+            <svg class="chevron-right" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" fill="currentColor"/></svg>
+          </a>
+          <a href="#" class="row-item" data-action="change-tariff">
+            <div class="row-content"><p class="row-title">Сменить тариф</p><p class="row-sub">Месячный, 3 мес, 6 мес, годовой</p></div>
+            <svg class="chevron-right" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" fill="currentColor"/></svg>
+          </a>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-section-header">
+            <h3 class="card-section-title">Мои устройства</h3>
+            <button class="link-btn" data-action="delete-all">Удалить все</button>
+          </div>
+          <p class="muted-small devices-hint">Устройства появляются автоматически при подключении через VPN-клиент по вашей ссылке-подписке</p>
+          <div class="devices-list" id="devicesList"></div>
+        </div>
+      </section>
+
+      <!-- Баланс -->
+      <section class="page" id="page-balance">
+        <h1 class="page-title">Баланс</h1>
+        <div class="glass-card balance-card">
+          <p class="muted">Текущий баланс</p>
+          <p class="big-value large"><span id="balanceAmount2">1.00</span> <span class="currency">₽</span></p>
+        </div>
+
+        <div class="glass-card">
+          <h3 class="card-section-title">Промокод</h3>
+          <div class="promo-row">
+            <input type="text" class="promo-input" placeholder="Введите промокод" id="promoInput">
+            <button class="btn-primary" id="activatePromo">Активировать</button>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <h3 class="card-section-title">Пополнение</h3>
+          <div class="pay-grid">
+            <button class="pay-card" data-pay="wata">
+              <p class="pay-title">WATA</p>
+              <p class="muted-small">Карты и СБП</p>
+              <p class="muted-small pay-range">10 – 100 000 ₽</p>
+            </button>
+            <button class="pay-card" data-pay="platega">
+              <p class="pay-title">Platega</p>
+              <p class="muted-small">Карты и СБП</p>
+              <p class="muted-small pay-range">10 – 1 000 000 ₽</p>
+            </button>
+            <button class="pay-card pay-wide" data-pay="stars">
+              <p class="pay-title">Telegram Stars</p>
+              <p class="muted-small">Оплата звёздами</p>
+              <p class="muted-small pay-range">1 – 10 000 ₽</p>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Рефералы -->
+      <section class="page" id="page-referral">
+        <h1 class="page-title">Реферальная программа</h1>
+        <div class="glass-card">
+          <p class="muted">Всего рефералов</p>
+          <p class="big-value large"><span id="refTotal">0</span></p>
+          <p class="muted-small"><span id="refActive">0</span> активных</p>
+        </div>
+        <div class="two-col">
+          <div class="card tight glass-card">
+            <p class="muted">Заработок</p>
+            <p class="big-value accent-green">+<span id="refSum">0.00</span> <span class="currency">₽</span></p>
+          </div>
+          <div class="card tight glass-card">
+            <p class="muted">Комиссия</p>
+            <p class="big-value accent-gold">15%</p>
+          </div>
+        </div>
+        <div class="glass-card">
+          <h3 class="card-section-title">Ваши ссылки</h3>
+          <div class="ref-link">
+            <p class="ref-label">Ссылка на бота</p>
+            <div class="ref-row">
+              <input type="text" readonly id="refBotLink" class="ref-input">
+              <button class="btn-primary" data-copy="refBotLink">Копировать</button>
+            </div>
+          </div>
+          <div class="ref-link">
+            <p class="ref-label">Ссылка на кабинет</p>
+            <div class="ref-row">
+              <input type="text" readonly id="refCabLink" class="ref-input">
+              <button class="btn-primary" data-copy="refCabLink">Копировать</button>
+            </div>
+          </div>
+          <p class="muted-small ref-hint">15% комиссии с каждой оплаты приглашённого друга</p>
+        </div>
+      </section>
+
+      <!-- Профиль -->
+      <section class="page" id="page-profile">
+        <h1 class="page-title">Профиль</h1>
+        <div class="glass-card profile-card">
+          <div class="profile-big-avatar">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/></svg>
+          </div>
+          <p class="profile-big-name" id="profileName">SELGM</p>
+          <p class="profile-big-handle" id="profileHandle">@Selgm_ofic</p>
+        </div>
+
+        <div class="glass-card">
+          <h3 class="card-section-title">Подписка</h3>
+          <div class="profile-row">
+            <span class="muted">Тариф</span>
+            <span class="profile-row-value" id="profileTariff">Текущий тариф</span>
+          </div>
+          <div class="profile-row">
+            <span class="muted">Действует до</span>
+            <span class="profile-row-value" id="profileEnd">13.10.2026</span>
+          </div>
+          <div class="profile-row">
+            <span class="muted">Осталось</span>
+            <span class="profile-row-value" id="profileDays">132 дн.</span>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <h3 class="card-section-title">Аккаунт</h3>
+          <div class="profile-row">
+            <span class="muted">Telegram ID</span>
+            <span class="profile-row-value" id="profileTgId">123456789</span>
+          </div>
+          <div class="profile-row">
+            <span class="muted">Регистрация</span>
+            <span class="profile-row-value">01.06.2026</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Информация -->
+      <section class="page" id="page-info">
+        <h1 class="page-title">Информация</h1>
+        <div class="glass-card">
+          <h3 class="card-section-title">О сервисе</h3>
+          <p style="line-height:1.6;font-size:14px;margin-bottom:12px">Selgis VPN — быстрый и безопасный VPN-сервис для обхода блокировок РКН. Используется протокол VLESS + Reality с маскировкой под обычный HTTPS-трафик.</p>
+          <p style="line-height:1.6;font-size:14px;color:var(--muted)">Серверы: Финляндия, Нидерланды, Германия. Без логов. Безлимитный трафик.</p>
+        </div>
+
+        <div class="glass-card">
+          <h3 class="card-section-title">Как подключиться</h3>
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:1.5">
+            <p>1. Скопируйте вашу ссылку-подписку в разделе «Профиль»</p>
+            <p>2. Установите VPN-клиент (v2rayNG, Streisand, Nekoray и др.)</p>
+            <p>3. Добавьте подписку в клиенте</p>
+            <p>4. Подключитесь — устройство появится здесь автоматически</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Поддержка -->
+      <section class="page" id="page-support">
+        <div class="page-header-row">
+          <h1 class="page-title">Поддержка</h1>
+          <button class="btn-primary" data-action="new-ticket">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/></svg>
+            Новый тикет
+          </button>
+        </div>
+
+        <div class="glass-card support-contact">
+          <div class="support-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" fill="currentColor"/></svg>
+          </div>
+          <div class="support-info">
+            <p class="support-title">Связаться с поддержкой</p>
+            <p class="support-handle">@SelgisVPN_Support</p>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <h3 class="card-section-title">Обращения</h3>
+          <div class="tickets-list" id="ticketsList"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom nav -->
+    <nav class="bottom-nav glass-nav">
+      <button class="nav-item active" data-go="home">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="currentColor"/></svg>
+        <span>Главная</span>
       </button>
-      <div class="timer" id="timer">00:00:00</div>
-    </div>
+      <button class="nav-item" data-go="subscription">
+        <svg viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" fill="currentColor"/></svg>
+        <span>Подписка</span>
+      </button>
+      <button class="nav-item" data-go="balance">
+        <svg viewBox="0 0 24 24"><path d="M21 7.28V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-2.28c.59-.35 1-.98 1-1.72V9c0-.74-.41-1.38-1-1.72z" fill="currentColor"/></svg>
+        <span>Баланс</span>
+      </button>
+      <button class="nav-item" data-go="referral">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3z" fill="currentColor"/></svg>
+        <span>Рефералы</span>
+      </button>
+      <button class="nav-item" data-go="support">
+        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" fill="currentColor"/></svg>
+        <span>Поддержка</span>
+      </button>
+    </nav>
+  </div>
 
-    <div class="stats">
-      <div class="stat-card">
-        <span class="stat-label">Загружено</span>
-        <span class="stat-value" id="uploadStat">0 MB</span>
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal glass-modal">
+      <div class="modal-grabber"></div>
+      <div class="modal-header">
+        <h3 id="modalTitle"></h3>
+        <button class="icon-btn" id="modalClose"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor"/></svg></button>
       </div>
-      <div class="stat-card">
-        <span class="stat-label">Скачано</span>
-        <span class="stat-value" id="downloadStat">0 MB</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Сессия</span>
-        <span class="stat-value" id="sessionStat">0</span>
-      </div>
-    </div>
-
-    <div class="server-section">
-      <label class="section-label">Сервер</label>
-      <div class="server-list" id="serverList">
-        <div class="server-item active" data-server="helsinki">
-          <span class="server-name">🇫🇮 Хельсинки</span>
-          <span class="server-ping">12 ms</span>
-        </div>
-        <div class="server-item" data-server="germany">
-          <span class="server-name">🇩🇪 Германия</span>
-          <span class="server-ping">34 ms</span>
-        </div>
-        <div class="server-item" data-server="netherlands">
-          <span class="server-name">🇳🇱 Нидерланды</span>
-          <span class="server-ping">28 ms</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="settings-row">
-      <div class="setting">
-        <span>Запуск при старте</span>
-        <label class="toggle">
-          <input type="checkbox" id="autoStart">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="setting">
-        <span>Kill Switch</span>
-        <label class="toggle">
-          <input type="checkbox" id="killSwitch" checked>
-          <span class="slider"></span>
-        </label>
-      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter"></div>
     </div>
   </div>
+
+  <!-- Side menu -->
+  <div class="side-menu-overlay" id="sideMenu">
+    <div class="side-menu glass-modal">
+      <button class="side-menu-close" id="sideMenuClose" aria-label="Закрыть">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor"/></svg>
+      </button>
+      <div class="side-menu-profile">
+        <div class="profile-avatar">
+          <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/></svg>
+        </div>
+        <div class="profile-info-side">
+          <p class="profile-name-side" id="sideName">SELGM</p>
+          <p class="profile-handle-side" id="sideHandle">@Selgm_ofic</p>
+        </div>
+      </div>
+      <nav class="side-nav">
+        <a href="#" class="side-item" data-go="home">
+          <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="currentColor"/></svg>
+          <span>Главная</span>
+        </a>
+        <a href="#" class="side-item" data-go="subscription">
+          <svg viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" fill="currentColor"/></svg>
+          <span>Подписка</span>
+        </a>
+        <a href="#" class="side-item" data-go="balance">
+          <svg viewBox="0 0 24 24"><path d="M21 7.28V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-2.28c.59-.35 1-.98 1-1.72V9c0-.74-.41-1.38-1-1.72z" fill="currentColor"/></svg>
+          <span>Баланс</span>
+        </a>
+        <a href="#" class="side-item" data-go="referral">
+          <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3z" fill="currentColor"/></svg>
+          <span>Рефералы</span>
+        </a>
+        <a href="#" class="side-item" data-go="support">
+          <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" fill="currentColor"/></svg>
+          <span>Поддержка</span>
+        </a>
+        <a href="#" class="side-item" data-action="info">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="currentColor"/></svg>
+          <span>Информация</span>
+        </a>
+        <a href="#" class="side-item" data-go="profile">
+          <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/></svg>
+          <span>Профиль</span>
+        </a>
+        <a href="#" class="side-item side-item-logout" data-action="logout">
+          <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" fill="currentColor"/></svg>
+          <span>Выйти</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
   <script src="app.js"></script>
 </body>
 </html>
