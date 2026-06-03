@@ -12,7 +12,42 @@
   <div class="stars" aria-hidden="true">
     <div class="stars-layer"></div>
     <div class="stars-layer slow"></div>
+    <div class="stars-layer bright"></div>
   </div>
+  <div class="glow-orb"></div>
+  <div class="glow-orb"></div>
+  <div class="glow-orb"></div>
+  <div class="constellation">
+    <div class="constellation-line"></div>
+    <div class="constellation-line"></div>
+    <div class="constellation-line"></div>
+    <div class="constellation-line"></div>
+    <div class="constellation-line"></div>
+    <div class="constellation-line"></div>
+    <div class="constellation-line"></div>
+    <div class="constellation-line"></div>
+    <div class="constellation-line"></div>
+    <div class="constellation-line"></div>
+    <div class="constellation-line"></div>
+    <div class="constellation-line"></div>
+  </div>
+  <div class="signal-ring"></div>
+  <div class="ambient-line"></div>
+  <div class="ambient-line bottom"></div>
+  <div class="shooting-star s1"></div>
+  <div class="shooting-star s2"></div>
+  <div class="shooting-star s3"></div>
+  <div class="shooting-star s4"></div>
+  <div class="particle p1"></div>
+  <div class="particle p2"></div>
+  <div class="particle p3"></div>
+  <div class="particle p4"></div>
+  <div class="particle p5"></div>
+  <div class="particle p6"></div>
+  <div class="particle p7"></div>
+  <div class="particle p8"></div>
+  <div class="particle p9"></div>
+  <div class="particle p10"></div>
 
   <div id="app">
     <!-- Header -->
@@ -164,19 +199,22 @@
           <h3 class="card-section-title">Пополнение</h3>
           <div class="pay-grid">
             <button class="pay-card" data-pay="wata">
+              <svg viewBox="0 0 24 24" width="20" height="20" style="margin-bottom:6px;color:var(--gold)"><path d="M21 7.28V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-2.28c.59-.35 1-.98 1-1.72V9c0-.74-.41-1.38-1-1.72zM20 9v6h-1.5v-1.5h-1V15H16V9h1.5v1.5h1V9H20z" fill="currentColor"/></svg>
               <p class="pay-title">WATA</p>
               <p class="muted-small">Карты и СБП</p>
               <p class="muted-small pay-range">10 – 100 000 ₽</p>
             </button>
             <button class="pay-card" data-pay="platega">
+              <svg viewBox="0 0 24 24" width="20" height="20" style="margin-bottom:6px;color:var(--gold)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/></svg>
               <p class="pay-title">Platega</p>
               <p class="muted-small">Карты и СБП</p>
               <p class="muted-small pay-range">10 – 1 000 000 ₽</p>
             </button>
             <button class="pay-card pay-wide" data-pay="stars">
+              <svg viewBox="0 0 24 24" width="20" height="20" style="margin-bottom:6px;color:var(--gold)"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/></svg>
               <p class="pay-title">Telegram Stars</p>
               <p class="muted-small">Оплата звёздами</p>
-              <p class="muted-small pay-range">1 – 10 000 ₽</p>
+              <p class="muted-small pay-range">1 – 10 000 ⭐</p>
             </button>
           </div>
         </div>
@@ -194,6 +232,7 @@
           <div class="card tight glass-card">
             <p class="muted">Заработок</p>
             <p class="big-value accent-green">+<span id="refSum">0.00</span> <span class="currency">₽</span></p>
+            <button class="link-btn" id="withdrawRef" style="margin-top:6px;font-size:12px">Вывести на баланс</button>
           </div>
           <div class="card tight glass-card">
             <p class="muted">Комиссия</p>
@@ -217,6 +256,15 @@
             </div>
           </div>
           <p class="muted-small ref-hint">15% комиссии с каждой оплаты приглашённого друга</p>
+        </div>
+
+        <div class="glass-card">
+          <div class="ref-tabs">
+            <button class="ref-tab active" data-reftab="list">Рефералы</button>
+            <button class="ref-tab" data-reftab="history">История</button>
+          </div>
+          <div id="refListContainer"></div>
+          <div id="refHistoryContainer" style="display:none"></div>
         </div>
       </section>
 
@@ -252,6 +300,13 @@
           <div class="profile-row">
             <span class="muted">Telegram ID</span>
             <span class="profile-row-value" id="profileTgId">123456789</span>
+          </div>
+          <div class="profile-row">
+            <span class="muted">
+              <svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:middle;margin-right:4px;fill:currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+              Google
+            </span>
+            <span class="profile-row-value" id="profileGoogle" style="cursor:pointer">—</span>
           </div>
           <div class="profile-row">
             <span class="muted">Регистрация</span>

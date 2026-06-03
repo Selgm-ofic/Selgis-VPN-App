@@ -1,28 +1,108 @@
 const tg = window.Telegram?.WebApp;
+const API_BASE = 'http://127.0.0.1:8000';
+let API_TOKEN = '';
 
-// === State (in-memory, no localStorage) ===
-let devices = [
-  { id: 1, name: '2312FPCA6G', os: 'Android', code: '8816E6EE' },
-  { id: 2, name: '23049PCD8G', os: 'Android', code: '70214852' },
-  { id: 3, name: 'Infinix X6882', os: 'Android', code: '41F6E88F' }
-];
+async function api(method, path, body) {
+  const opts = { method, headers: {} };
+  if (API_TOKEN) opts.headers['Authorization'] = `Bearer ${API_TOKEN}`;
+  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  const r = await fetch(API_BASE + path, opts);
+  if (!r.ok) { const e = await r.json().catch(() => ({ detail: r.statusText })); throw new Error(e.detail || 'API error'); }
+  return r.json();
+}
 
+async function login() {
+  if (tg?.initData) {
+    const res = await api('POST', '/api/auth/login', { init_data: tg.initData });
+    API_TOKEN = res.token;
+    return;
+  }
+  // Fallback for local dev without Telegram
+  const tgId = prompt('Telegram ID (dev):') || 'dev_' + Date.now();
+  const res = await api('POST', '/api/auth/login', { init_data: `id=${tgId}&first_name=Dev&username=dev_user` });
+  API_TOKEN = res.token;
+}
+
+async function loadData() {
+  try {
+    const [profile, devs, ticketsData, refInfo, balanceData, notifCount] = await Promise.all([
+      api('GET', '/api/user/profile'),
+      api('GET', '/api/devices'),
+      api('GET', '/api/tickets'),
+      api('GET', '/api/referrals'),
+      api('GET', '/api/payments/balance'),
+      api('GET', '/api/notifications/unread-count'),
+    ]);
+    user.name = profile.name;
+    user.handle = profile.handle;
+    user.tgId = profile.tg_id;
+    user.googleEmail = profile.google_email;
+    user.tier = profile.tier;
+    user.tariff = profile.tariff;
+    user.tariffEnd = profile.tariff_end || '';
+    daysLeft = profile.days_left;
+    balance = profile.balance;
+    deviceLimit = profile.device_limit;
+    devices = devs;
+    tickets = ticketsData.map(t => ({
+      id: t.id,
+      title: t.subject,
+      date: new Date(t.created_at).toLocaleDateString(),
+      status: t.status,
+      messages: []
+    }));
+    referrals = {
+      total: refInfo.total,
+      active: refInfo.active,
+      earnings: refInfo.earnings,
+      list: (refInfo.referrals || []).map(r => ({
+        name: r.handle.replace('@', ''),
+        date: new Date(r.created_at).toLocaleDateString(),
+        paid: r.status === 'paid',
+        amount: 0
+      })),
+      history: (refInfo.history || []).map(h => ({
+        action: h.description,
+        name: '',
+        amount: h.amount,
+        date: new Date(h.created_at).toLocaleDateString()
+      }))
+    };
+    if (notifCount.count > 0) {
+      document.getElementById('notifBadge').textContent = notifCount.count;
+      document.getElementById('notifBadge').style.display = '';
+    }
+    document.getElementById('notifBadge').style.display = notifCount.count > 0 ? '' : 'none';
+  } catch (e) {
+    console.error('loadData error:', e);
+  }
+  render();
+}
+
+// === State ===
+let devices = [];
 let deviceLimit = 5;
-
-let balance = 1.00;
-let trafficUsed = 21.2;
-let trafficLimit = Infinity; // безлимит по умолчанию
+let balance = 0;
+let trafficUsed = 0;
+let trafficLimit = Infinity;
 let trafficUnlimited = true;
-let daysLeft = 132;
-let referrals = { total: 0, active: 0, earnings: 0 };
+let daysLeft = 0;
+let referrals = {
+  total: 0,
+  active: 0,
+  earnings: 0,
+  list: [],
+  history: []
+};
 
 const user = {
-  name: 'SELGM',
-  handle: '@Selgm_ofic',
-  tgId: '123456789',
-  tier: 'Базовый юзер',
-  tariff: 'Текущий тариф',
-  tariffEnd: '13.10.2026'
+  name: '',
+  handle: '',
+  tgId: '',
+  googleEmail: null,
+  tier: '',
+  tariff: '',
+  tariffEnd: ''
 };
 
 const TARIFES = [
@@ -34,23 +114,25 @@ const TARIFES = [
 
 const PROMOS = { 'WELCOME100': 100, 'SELGIS2026': 250, 'BONUS50': 50 };
 
-let tickets = [
-  { id: 1, title: 'Вопрос по расширению', date: '02.06.2026', status: 'open' },
-  { id: 2, title: 'Возможные причины блокировок', date: '14.04.2026', status: 'closed' }
-];
-
-let nextDeviceId = 4;
-let nextTicketId = 3;
+let tickets = [];
+let nextDeviceId = 1;
+let nextTicketId = 1;
 
 // === Init ===
-function init() {
+async function init() {
   if (tg) {
     tg.expand();
     tg.ready();
     tg.enableClosingConfirmation();
   }
+  try {
+    await login();
+    await loadData();
+  } catch (e) {
+    console.error('Auth error:', e);
+    render();
+  }
   setupRefLinks();
-  render();
   setupNav();
   setupActions();
   setupModals();
@@ -89,6 +171,11 @@ function render() {
   document.getElementById('profileEnd').textContent = user.tariffEnd;
   document.getElementById('profileDays').textContent = daysLeft + ' дн.';
   document.getElementById('profileTgId').textContent = user.tgId;
+  const profileGoogle = document.getElementById('profileGoogle');
+  if (profileGoogle) {
+    profileGoogle.textContent = user.googleEmail || 'Привязать';
+    profileGoogle.style.color = user.googleEmail ? 'var(--gold)' : 'var(--muted)';
+  }
 
   // Traffic
   renderTraffic();
@@ -100,6 +187,7 @@ function render() {
     fill.style.width = pct + '%';
   }
 
+  renderReferrals();
   renderDevices();
   renderTickets();
 }
@@ -112,13 +200,55 @@ function renderTraffic() {
   usedEl.textContent = trafficUsed.toFixed(1);
 
   if (trafficUnlimited) {
-    fill.style.width = Math.min(100, trafficUsed) + '%';
+    fill.style.width = '100%';
     remEl.innerHTML = '∞ осталось';
   } else {
     const pct = Math.min(100, (trafficUsed / trafficLimit) * 100);
     fill.style.width = pct + '%';
     const rem = Math.max(0, trafficLimit - trafficUsed);
     remEl.textContent = rem.toFixed(1) + ' GB осталось';
+  }
+}
+
+function renderReferrals() {
+  // Referral list tab
+  const listContainer = document.getElementById('refListContainer');
+  if (listContainer) {
+    if (referrals.list.length === 0) {
+      listContainer.innerHTML = '<div class="empty-text" style="padding:12px 0;text-align:center">Пока нет рефералов</div>';
+    } else {
+      listContainer.innerHTML = referrals.list.map(r => `
+        <div class="ref-item">
+          <div class="ref-avatar"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/></svg></div>
+          <div class="ref-item-info">
+            <p class="ref-item-name">@${r.name}</p>
+            <p class="ref-item-date">${r.date}</p>
+          </div>
+          <span class="ref-item-status ${r.paid ? 'status-paid' : 'status-pending'}">
+            ${r.paid ? 'Оплатил' : 'Ожидание'}
+          </span>
+        </div>
+      `).join('');
+    }
+  }
+
+  // History tab
+  const historyContainer = document.getElementById('refHistoryContainer');
+  if (historyContainer) {
+    if (referrals.history.length === 0) {
+      historyContainer.innerHTML = '<div class="empty-text" style="padding:12px 0;text-align:center">История пуста</div>';
+    } else {
+      historyContainer.innerHTML = referrals.history.map(h => `
+        <div class="history-item">
+          <div class="history-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/></svg></div>
+          <div class="history-info">
+            <p class="history-title">${h.action} — @${h.name}</p>
+            <p class="history-date">${h.date}</p>
+          </div>
+          <span class="history-amount">+${h.amount.toFixed(2)} ₽</span>
+        </div>
+      `).join('');
+    }
   }
 }
 
@@ -151,14 +281,18 @@ function renderDevices() {
   });
 }
 
-function removeDevice(id) {
+async function removeDevice(id) {
   const row = document.querySelector(`.device-row[data-id="${id}"]`);
   if (row) row.classList.add('removing');
-  setTimeout(() => {
+  try {
+    await api('DELETE', `/api/devices/${id}`);
     devices = devices.filter(d => d.id !== id);
     showToast('Устройство отключено', 'success');
     render();
-  }, 280);
+  } catch (e) {
+    if (row) row.classList.remove('removing');
+    showToast(e.message, 'error');
+  }
 }
 
 function renderTickets() {
@@ -212,8 +346,45 @@ function setupActions() {
   document.getElementById('sideMenu').addEventListener('click', e => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove('active');
   });
-  document.getElementById('notifBtn').addEventListener('click', () => {
-    showToast('Доступно обновление v1.1', 'success');
+  document.getElementById('notifBtn').addEventListener('click', async () => {
+    let notifs = [];
+    try {
+      const data = await api('GET', '/api/notifications');
+      notifs = data.map(n => ({
+        title: n.title,
+        desc: n.body,
+        time: new Date(n.created_at).toLocaleDateString(),
+        read: n.is_read
+      }));
+    } catch (e) { showToast(e.message, 'error'); }
+    if (notifs.length === 0) {
+      notifs = [{ title: 'Нет уведомлений', desc: 'Всё тихо', time: '', read: true }];
+    }
+    openModal({
+      title: 'Уведомления',
+      body: `
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${notifs.map(n => `
+            <div class="notif-item ${!n.read ? 'notif-unread' : ''}">
+              <p class="notif-title">${n.title}</p>
+              <p class="notif-desc">${n.desc}</p>
+              <p class="notif-time">${n.time}</p>
+            </div>
+          `).join('')}
+        </div>
+      `,
+      footer: `<button class="btn-primary" id="readAll">Прочесть все</button>`,
+      onOpen: () => {
+        document.getElementById('readAll').onclick = async () => {
+          try { await api('POST', '/api/notifications/read-all'); } catch (e) { showToast(e.message, 'error'); }
+          const badge = document.querySelector('.badge');
+          if (badge) badge.style.display = 'none';
+          closeModal();
+          showToast('Все уведомления прочитаны', 'success');
+        };
+      }
+    });
+    haptic();
   });
 
   document.querySelectorAll('.pay-card').forEach(btn => {
@@ -233,6 +404,56 @@ function setupActions() {
       handleAction(el.dataset.action);
     });
   });
+
+  // Referral tabs
+  document.querySelectorAll('[data-reftab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-reftab]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const list = document.getElementById('refListContainer');
+      const hist = document.getElementById('refHistoryContainer');
+      if (list) list.style.display = 'none';
+      if (hist) hist.style.display = 'none';
+      const tab = btn.dataset.reftab;
+      const target = document.getElementById('ref' + tab.charAt(0).toUpperCase() + tab.slice(1) + 'Container');
+      if (target) target.style.display = '';
+    });
+  });
+
+  const withdrawBtn = document.getElementById('withdrawRef');
+  if (withdrawBtn) {
+    withdrawBtn.addEventListener('click', async () => {
+      try {
+        const res = await api('POST', '/api/referrals/withdraw');
+        balance = res.balance;
+        referrals.earnings = 0;
+        showToast('Средства зачислены на баланс', 'success');
+        render();
+      } catch (e) { showToast(e.message, 'error'); }
+    });
+  }
+
+  const profileGoogle = document.getElementById('profileGoogle');
+  if (profileGoogle) {
+    profileGoogle.addEventListener('click', async () => {
+      if (user.googleEmail) {
+        try {
+          await api('PUT', '/api/user/profile', { google_email: '' });
+          user.googleEmail = null;
+          showToast('Google аккаунт отвязан', 'success');
+        } catch (e) { showToast(e.message, 'error'); }
+      } else {
+        const email = prompt('Введите email Google:');
+        if (!email) return;
+        try {
+          await api('PUT', '/api/user/profile', { google_email: email });
+          user.googleEmail = email;
+          showToast('Google аккаунт привязан', 'success');
+        } catch (e) { showToast(e.message, 'error'); }
+      }
+      render();
+    });
+  }
 }
 
 function setupModals() {
@@ -243,23 +464,18 @@ function setupModals() {
 }
 
 // === Logic ===
-function activatePromo() {
+async function activatePromo() {
   const input = document.getElementById('promoInput');
   const code = input.value.trim().toUpperCase();
-  if (!code) {
-    showToast('Введите промокод', 'error');
-    return;
-  }
-  const bonus = PROMOS[code];
-  if (bonus) {
-    balance += bonus;
+  if (!code) { showToast('Введите промокод', 'error'); return; }
+  try {
+    const res = await api('POST', '/api/payments/promo', { code });
+    balance = res.balance;
     input.value = '';
-    showToast('+' + bonus + ' ₽ на баланс', 'success');
+    showToast('+' + res.bonus + ' ₽ на баланс', 'success');
     notify('success');
     render();
-  } else {
-    showToast('Промокод не найден', 'error');
-  }
+  } catch (e) { showToast(e.message, 'error'); }
 }
 
 function copyText(text) {
@@ -294,46 +510,110 @@ function openPayment(method) {
         p.classList.add('selected');
         document.getElementById('payAmount').value = p.dataset.amt;
       });
-      document.getElementById('confirmPay').onclick = () => {
+      document.getElementById('confirmPay').onclick = async () => {
         const amount = +document.getElementById('payAmount').value;
         if (!amount || amount < min || amount > max) {
           showToast('Некорректная сумма', 'error');
           return;
         }
-        balance += amount;
-        closeModal();
-        showToast('Баланс +' + amount + ' ₽', 'success');
-        notify('success');
+        try {
+          const res = await api('POST', '/api/payments/topup', { method, amount });
+          balance = res.balance;
+          closeModal();
+          showToast('Баланс +' + amount + ' ₽', 'success');
+          notify('success');
+          render();
+        } catch (e) { showToast(e.message, 'error'); }
+      };
+    }
+  });
         render();
       };
     }
   });
 }
 
-function openTicket(id) {
-  const t = tickets.find(x => x.id === id);
-  if (!t) return;
-  openModal({
-    title: t.title,
-    body: `
-      <p class="muted-small" style="margin-bottom:14px">${t.date}</p>
-      <p style="font-size:14px;line-height:1.5;color:var(--muted)">
-        ${t.status === 'open' ? 'Это активный тикет. Мы ответим в ближайшее время.' : 'Этот тикет закрыт.'}
-      </p>
-    `,
-    footer: t.status === 'open'
-      ? `<button class="btn-secondary" id="closeTicket">Закрыть</button><button class="btn-primary" onclick="closeModal()">ОК</button>`
-      : `<button class="btn-primary" onclick="closeModal()">Закрыть</button>`,
-    onOpen: () => {
-      const btn = document.getElementById('closeTicket');
-      if (btn) btn.onclick = () => {
-        t.status = 'closed';
-        closeModal();
-        showToast('Тикет закрыт', 'success');
-        render();
-      };
-    }
-  });
+async function openTicket(id) {
+  try {
+    let msgs = [];
+    let t = tickets.find(x => x.id === id);
+    let subject = t ? t.title : 'Тикет #' + id;
+    let status = t ? t.status : 'open';
+
+    const detail = await api('GET', `/api/tickets/${id}`);
+    subject = detail.subject;
+    status = detail.status;
+    msgs = (detail.messages || []).map(m => ({
+      from: m.sender === 'user' ? 'user' : 'support',
+      text: m.text,
+      time: new Date(m.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+    }));
+
+    openModal({
+      title: subject,
+      body: `
+        <div class="chat-container" id="chatContainer">
+          ${msgs.map(m => `
+            <div class="chat-msg ${m.from === 'user' ? 'chat-user' : 'chat-support'}">
+              <div class="chat-bubble">${m.text}</div>
+              <span class="chat-time">${m.time || ''}</span>
+            </div>
+          `).join('')}
+        </div>
+        ${status === 'open' ? `
+          <div class="chat-input-row">
+            <input type="text" class="chat-input" id="chatInput" placeholder="Написать сообщение..." maxlength="500">
+            <button class="chat-send" id="chatSend">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/></svg>
+            </button>
+          </div>
+        ` : '<p class="muted-small" style="text-align:center;padding:12px">Тикет закрыт</p>'}
+      `,
+      footer: status === 'open'
+        ? `<button class="btn-secondary" id="closeTicket">Закрыть тикет</button><button class="btn-primary" onclick="closeModal()">Закрыть</button>`
+        : `<button class="btn-primary" onclick="closeModal()">Закрыть</button>`,
+      onOpen: () => {
+        const container = document.getElementById('chatContainer');
+        if (container) container.scrollTop = container.scrollHeight;
+
+        const input = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('chatSend');
+        if (input && sendBtn) {
+          async function send() {
+            const text = input.value.trim();
+            if (!text) return;
+            try {
+              await api('POST', `/api/tickets/${id}/messages`, { text });
+              input.value = '';
+              openTicket(id);
+            } catch (e) { showToast(e.message, 'error'); }
+          }
+          sendBtn.onclick = send;
+          input.onkeydown = e => { if (e.key === 'Enter') send(); };
+        }
+
+        const btn = document.getElementById('closeTicket');
+        if (btn) btn.onclick = async () => {
+          try { await api('PUT', `/api/tickets/${id}/close`); } catch (e) { showToast(e.message, 'error'); }
+          closeModal();
+          showToast('Тикет закрыт', 'success');
+          render();
+        };
+      }
+    });
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+function renderTicketChat(t) {
+  const container = document.getElementById('chatContainer');
+  if (!container) return;
+  const msgs = t.messages || [];
+  container.innerHTML = msgs.map(m => `
+    <div class="chat-msg ${m.from === 'user' ? 'chat-user' : 'chat-support'}">
+      <div class="chat-bubble">${m.text}</div>
+      <span class="chat-time">${m.time || ''}</span>
+    </div>
+  `).join('');
 }
 
 function handleAction(action) {
@@ -455,17 +735,18 @@ function handleAction(action) {
             opts.forEach(x => x.classList.remove('selected'));
             o.classList.add('selected');
           });
-          document.getElementById('confirmTar').onclick = () => {
+          document.getElementById('confirmTar').onclick = async () => {
             const sel = document.querySelector('#tarOpts .tariff-option.selected');
             if (!sel) { showToast('Выберите тариф', 'error'); return; }
             const t = TARIFES.find(x => x.id === sel.dataset.id);
-            if (balance < t.price) { showToast('Недостаточно средств', 'error'); return; }
-            balance -= t.price;
-            daysLeft = t.days;
-            closeModal();
-            showToast('Тариф "' + t.name + '" активирован', 'success');
-            notify('success');
-            render();
+            try {
+              const res = await api('POST', '/api/subscription/purchase', { tariff_id: t.id });
+              balance = res.balance;
+              await loadData();
+              closeModal();
+              showToast('Тариф "' + t.name + '" активирован', 'success');
+              notify('success');
+            } catch (e) { showToast(e.message, 'error'); }
           };
         }
       });
@@ -476,7 +757,8 @@ function handleAction(action) {
         body: `<p class="muted">Все устройства будут отключены от VPN.</p>`,
         footer: `<button class="btn-secondary" onclick="closeModal()">Отмена</button><button class="btn-primary" id="confirmDel">Удалить</button>`,
         onOpen: () => {
-          document.getElementById('confirmDel').onclick = () => {
+          document.getElementById('confirmDel').onclick = async () => {
+            try { await api('DELETE', '/api/devices'); } catch (e) { showToast(e.message, 'error'); }
             devices = [];
             closeModal();
             showToast('Устройства удалены', 'success');
@@ -500,14 +782,16 @@ function handleAction(action) {
         `,
         footer: `<button class="btn-secondary" onclick="closeModal()">Отмена</button><button class="btn-primary" id="createT">Создать</button>`,
         onOpen: () => {
-          document.getElementById('createT').onclick = () => {
+          document.getElementById('createT').onclick = async () => {
             const title = document.getElementById('tTitle').value.trim();
             const text = document.getElementById('tText').value.trim();
             if (!title || !text) { showToast('Заполните все поля', 'error'); return; }
-            tickets.unshift({ id: nextTicketId++, title, date: new Date().toLocaleDateString('ru-RU'), status: 'open' });
-            closeModal();
-            showToast('Тикет создан', 'success');
-            render();
+            try {
+              const res = await api('POST', '/api/tickets', { subject: title, message: text });
+              await loadData();
+              closeModal();
+              showToast('Тикет создан', 'success');
+            } catch (e) { showToast(e.message, 'error'); }
           };
         }
       });
